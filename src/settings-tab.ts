@@ -244,7 +244,9 @@ export class NoteRefactorSettingsTab extends PluginSettingTab {
       .setDesc('Add rules to replace specific characters in the title. For example, replace ":" with "."')
       .addButton(button =>
         button.setButtonText('Add Rule').onClick(() => {
-          this.addReplacementRule(this.titleReplacementRulesContainer)
+          this.plugin.settings.titleReplacementRules.push({ from: '', to: '' })
+          this.plugin.saveData(this.plugin.settings)
+          this.display() // 重新显示所有设置以更新规则列表
         })
       )
 
@@ -254,15 +256,12 @@ export class NoteRefactorSettingsTab extends PluginSettingTab {
       this.plugin.settings.titleReplacementRules = []
     }
 
-    this.plugin.settings.titleReplacementRules.forEach(() => {
-      this.addReplacementRule(this.titleReplacementRulesContainer)
+    this.plugin.settings.titleReplacementRules.forEach((rule, index) => {
+      this.addReplacementRule(this.titleReplacementRulesContainer, rule, index)
     })
   }
 
-  private addReplacementRule(container: HTMLElement): void {
-    const ruleIndex = container.childElementCount
-    const rule = this.plugin.settings.titleReplacementRules[ruleIndex] || { from: '', to: '' }
-
+  private addReplacementRule(container: HTMLElement, rule: { from: string; to: string }, index: number): void {
     const ruleEl = container.createDiv('replacement-rule')
 
     new Setting(ruleEl)
@@ -271,7 +270,7 @@ export class NoteRefactorSettingsTab extends PluginSettingTab {
           .setPlaceholder('Characters to replace')
           .setValue(rule.from)
           .onChange(value => {
-            this.plugin.settings.titleReplacementRules[ruleIndex] = { ...rule, from: value }
+            this.plugin.settings.titleReplacementRules[index].from = value
             this.plugin.saveData(this.plugin.settings)
           })
       )
@@ -280,15 +279,15 @@ export class NoteRefactorSettingsTab extends PluginSettingTab {
           .setPlaceholder('Replace with')
           .setValue(rule.to)
           .onChange(value => {
-            this.plugin.settings.titleReplacementRules[ruleIndex] = { ...rule, to: value }
+            this.plugin.settings.titleReplacementRules[index].to = value
             this.plugin.saveData(this.plugin.settings)
           })
       )
       .addButton(button =>
         button.setButtonText('Delete').onClick(() => {
-          this.plugin.settings.titleReplacementRules.splice(ruleIndex, 1)
+          this.plugin.settings.titleReplacementRules.splice(index, 1)
           this.plugin.saveData(this.plugin.settings)
-          ruleEl.remove()
+          this.display() // 重新显示所有规则
         })
       )
   }
