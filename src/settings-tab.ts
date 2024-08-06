@@ -8,6 +8,7 @@ export class NoteRefactorSettingsTab extends PluginSettingTab {
   filePrefixUPop = document.createElement('b')
   momentDateRegex = new MomentDateRegex()
   plugin: NoteRefactor
+  titleReplacementRulesContainer: HTMLElement
   constructor(app: App, plugin: NoteRefactor) {
     super(app, plugin)
     this.plugin = plugin
@@ -112,6 +113,8 @@ export class NoteRefactorSettingsTab extends PluginSettingTab {
         text.inputEl.rows = 10
         text.inputEl.cols = 25
       })
+
+    this.addTitleReplacementRules(containerEl)
 
     new Setting(containerEl)
       .setName('Exclude First Line')
@@ -234,5 +237,59 @@ export class NoteRefactorSettingsTab extends PluginSettingTab {
     a.target = '_blank'
     descEl.appendChild(a)
     descEl.appendChild(document.createElement('br'))
+  }
+  private addTitleReplacementRules(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName('Title character replacement')
+      .setDesc('Add rules to replace specific characters in the title. For example, replace ":" with "."')
+      .addButton(button =>
+        button.setButtonText('Add Rule').onClick(() => {
+          this.addReplacementRule(this.titleReplacementRulesContainer)
+        })
+      )
+
+    this.titleReplacementRulesContainer = containerEl.createDiv('title-replacement-rules')
+
+    if (!this.plugin.settings.titleReplacementRules) {
+      this.plugin.settings.titleReplacementRules = []
+    }
+
+    this.plugin.settings.titleReplacementRules.forEach(() => {
+      this.addReplacementRule(this.titleReplacementRulesContainer)
+    })
+  }
+
+  private addReplacementRule(container: HTMLElement): void {
+    const ruleIndex = container.childElementCount
+    const rule = this.plugin.settings.titleReplacementRules[ruleIndex] || { from: '', to: '' }
+
+    const ruleEl = container.createDiv('replacement-rule')
+
+    new Setting(ruleEl)
+      .addText(text =>
+        text
+          .setPlaceholder('Characters to replace')
+          .setValue(rule.from)
+          .onChange(value => {
+            this.plugin.settings.titleReplacementRules[ruleIndex] = { ...rule, from: value }
+            this.plugin.saveData(this.plugin.settings)
+          })
+      )
+      .addText(text =>
+        text
+          .setPlaceholder('Replace with')
+          .setValue(rule.to)
+          .onChange(value => {
+            this.plugin.settings.titleReplacementRules[ruleIndex] = { ...rule, to: value }
+            this.plugin.saveData(this.plugin.settings)
+          })
+      )
+      .addButton(button =>
+        button.setButtonText('Delete').onClick(() => {
+          this.plugin.settings.titleReplacementRules.splice(ruleIndex, 1)
+          this.plugin.saveData(this.plugin.settings)
+          ruleEl.remove()
+        })
+      )
   }
 }

@@ -35,6 +35,10 @@ export default class NoteRefactor extends Plugin {
     this.obsFile = new ObsidianFile(this.settings, this.app)
     this.file = new NRFile(this.settings)
     this.NRDoc = new NRDoc(this.settings, this.app.vault, this.app.fileManager)
+    // 如果设置中没有标题替换规则，初始化为空数组
+    if (!this.settings.titleReplacementRules) {
+      this.settings.titleReplacementRules = []
+    }
     // 添加各种命令（command），这些命令可以在 Obsidian 中使用
     this.addCommand({
       id: 'app:extract-selection-first-line',
@@ -120,6 +124,24 @@ export default class NoteRefactor extends Plugin {
     }
   }
 
+  applyTitleReplacements(title: string): string {
+    console.log('Applying title replacements', title, this.settings.titleReplacementRules)
+    if (!this.settings.titleReplacementRules) {
+      return title
+    }
+    console.log(
+      'Applying title replacements',
+      title,
+      this.settings.titleReplacementRules.reduce((acc, rule) => {
+        return acc.replace(new RegExp(rule.from, 'g'), rule.to)
+      }, title)
+    )
+
+    return this.settings.titleReplacementRules.reduce((acc, rule) => {
+      return acc.replace(new RegExp(rule.from, 'g'), rule.to)
+    }, title)
+  }
+
   // 根据标题级别分割笔记的方法
   async splitOnHeading(headingLevel: number) {
     const mdView = this.app.workspace.activeLeaf.view as MarkdownView // 获取当前活动的 Markdown 视图
@@ -144,9 +166,16 @@ export default class NoteRefactor extends Plugin {
     if (selectedContent.length <= 0) {
       return
     }
+    console.log('selectedContent[0]', selectedContent[0])
 
-    // 创建新笔记，以首行作为文件名
-    await this.createNoteWithFirstLineAsFileName(selectedContent[0], selectedContent, mdView, doc, mode, false)
+    // 应用标题替换规则
+
+    const replacedFileName = this.applyTitleReplacements(selectedContent[0])
+
+    console.log('Creating note with first line as file name', replacedFileName)
+
+    // 创建新笔记，使用替换后的首行作为文件名
+    await this.createNoteWithFirstLineAsFileName(replacedFileName, selectedContent, mdView, doc, mode, false)
   }
 
   // 生成自动化文件名并提取选中内容的方法
