@@ -39,6 +39,14 @@ export default class NoteRefactor extends Plugin {
     if (!this.settings.titleReplacementRules) {
       this.settings.titleReplacementRules = []
     }
+
+    // 修改事件监听器
+    this.registerDomEvent(document, 'input', (evt: InputEvent) => {
+      const target = evt.target as HTMLElement
+      if (target.classList.contains('view-header-title')) {
+        this.handleTitleInput(target as HTMLDivElement)
+      }
+    })
     // 添加各种命令（command），这些命令可以在 Obsidian 中使用
     this.addCommand({
       id: 'app:extract-selection-first-line',
@@ -126,20 +134,21 @@ export default class NoteRefactor extends Plugin {
 
   applyTitleReplacements(title: string): string {
     console.log('Applying title replacements', title, this.settings.titleReplacementRules)
-    if (!this.settings.titleReplacementRules) {
+    if (!this.settings.titleReplacementRules || !Array.isArray(this.settings.titleReplacementRules)) {
       return title
     }
-    console.log(
-      'Applying title replacements',
-      title,
-      this.settings.titleReplacementRules.reduce((acc, rule) => {
-        return acc.replace(new RegExp(rule.from, 'g'), rule.to)
-      }, title)
-    )
 
     return this.settings.titleReplacementRules.reduce((acc, rule) => {
-      return acc.replace(new RegExp(rule.from, 'g'), rule.to)
-    }, title)
+      if (rule && typeof rule.from === 'string' && typeof rule.to === 'string') {
+        return acc.replace(new RegExp(this.escapeRegExp(rule.from), 'g'), rule.to)
+      }
+      return acc
+    }, title) // 这里我们使用 title 作为初始值
+  }
+
+  // 辅助方法：转义正则表达式特殊字符
+  private escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   }
 
   // 根据标题级别分割笔记的方法
@@ -299,5 +308,46 @@ export default class NoteRefactor extends Plugin {
       mode
     ) // 创建模态框
     new NoteRefactorModal(this.app, modalCreation).open() // 打开模态框
+  }
+
+  private handleTitleInput(titleElement: HTMLDivElement) {
+    const selection = window.getSelection()
+    const range = selection?.getRangeAt(0)
+    const originalValue = titleElement.textContent || ''
+    const newValue = this.applyTitleReplacements(originalValue)
+
+    if (newValue !== originalValue) {
+      // 保存当前光标位置
+      const cursorPosition = range ? range.startOffset : 0
+
+      // 更新内容
+      titleElement.textContent = newValue
+
+      // 恢复光标位置
+      this.restoreCursorPosition(titleElement, cursorPosition)
+
+      // 触发一个自定义事件，通知 Obsidian 标题已更改
+      const event = new Event('input', { bubbles: true, cancelable: true })
+      titleElement.dispatchEvent(event)
+    }
+  }
+
+  private restoreCursorPosition(element: HTMLElement, position: number) {
+    const range = document.createRange()
+    const selection = window.getSelection()
+
+    // 确保位置不超过内容长度
+    position = Math.min(position, element.textContent?.length || 0)
+
+    if (element.firstChild) {
+      range.setStart(element.firstChild, position)
+      range.setEnd(element.firstChild, position)
+    } else {
+      range.setStart(element, 0)
+      range.setEnd(element, 0)
+    }
+
+    selection?.removeAllRanges()
+    selection?.addRange(range)
   }
 }
