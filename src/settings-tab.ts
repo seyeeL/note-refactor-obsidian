@@ -79,6 +79,18 @@ export class NoteRefactorSettingsTab extends PluginSettingTab {
       )
 
     new Setting(containerEl)
+      .setName('Use embedding reference')
+      .setDesc(
+        'When creating a new note, use embedding reference (![[...]]) instead of normal link ([[...]]) in the original note'
+      )
+      .addToggle(toggle =>
+        toggle.setValue(this.plugin.settings.useEmbeddingType).onChange(value => {
+          this.plugin.settings.useEmbeddingType = value
+          this.plugin.saveData(this.plugin.settings)
+        })
+      )
+
+    new Setting(containerEl)
       .setName('Note link template')
       .setDesc(
         this.tempalteDescriptionContent(

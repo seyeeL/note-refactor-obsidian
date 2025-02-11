@@ -175,13 +175,15 @@ export default class NoteRefactor extends Plugin {
     if (selectedContent.length <= 0) {
       return
     }
-    console.log('selectedContent[0]', selectedContent[0])
+    console.log('选中的内容:', selectedContent[0]) // 添加调试信息
 
     // 应用标题替换规则
-
     const replacedFileName = this.applyTitleReplacements(selectedContent[0])
+    console.log('处理后的文件名:', replacedFileName) // 添加调试信息
 
-    console.log('Creating note with first line as file name', replacedFileName)
+    // 根据设置决定使用嵌入式引用还是普通链接
+    const newNoteLink = this.settings.useEmbeddingType ? `![[${replacedFileName}]]` : `[[${replacedFileName}]]`
+    console.log('生成的笔记链接:', newNoteLink) // 添加调试信息
 
     // 创建新笔记，使用替换后的首行作为文件名
     await this.createNoteWithFirstLineAsFileName(replacedFileName, selectedContent, mdView, doc, mode, false)
@@ -260,7 +262,9 @@ export default class NoteRefactor extends Plugin {
 
     if (this.settings.refactoredNoteTemplate !== undefined && this.settings.refactoredNoteTemplate !== '') {
       const link = await this.app.fileManager.generateMarkdownLink(mdView.file, '', '', '') // 生成 Markdown 链接
-      const newNoteLink = await this.NRDoc.markdownLink(filePath) // 获取新的笔记链接
+      // 根据设置决定使用嵌入式引用还是普通链接
+      const newNoteLink = this.settings.useEmbeddingType ? `![[${fileName}]]` : `[[${fileName}]]`
+      console.log('生成的笔记链接:', newNoteLink) // 添加调试信息
       note = this.NRDoc.templatedContent(
         note,
         this.settings.refactoredNoteTemplate,

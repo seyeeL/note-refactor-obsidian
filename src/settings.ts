@@ -13,6 +13,7 @@ export class NoteRefactorSettings {
   refactoredNoteTemplate: string = ''
   normalizeHeaderLevels: boolean = false
   titleReplacementRules: { from: string; to: string }[]
+  useEmbeddingType: boolean = false
 }
 
 export enum Location {
